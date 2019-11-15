@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10.2)
-project(moveit_core)
+project(moveit_core VERSION 2.0.0 LANGUAGES CXX)
 
 # Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
@@ -7,8 +7,10 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 # Warnings
+# Remove -Wcast-qual to avoid warnings in tf2/LinearMath/Vector3.h.
+# TODO: Add -Wcast-qual back when PR(https://github.com/ros2/geometry2/pull/193) is merged.
 add_compile_options(-Wall -Wextra
-  -Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls -Wcast-qual
+  -Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls
   -Wno-unused-parameter -Wno-unused-function)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   # This too often has false-positives
@@ -16,10 +18,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-# if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
-#   message("${PROJECT_NAME}: You did not request a specific build type: Choosing 'Release' for maximum performance")
-#   set(CMAKE_BUILD_TYPE Release)
-# endif()
+if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+  message("${PROJECT_NAME}: You did not request a specific build type: Choosing 'Release' for maximum performance")
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -58,30 +60,8 @@ find_package(common_interfaces REQUIRED)
 find_package(rcutils REQUIRED)
 find_package(pluginlib REQUIRED)
 
+# Set target file path for version.h
 set(VERSION_FILE_PATH ${CMAKE_BINARY_DIR}/include)
-# Pass the folder of the generated version.h to catkin_package() for export in devel-space
-# This is how gencpp adds the folder of generated message code to the include dirs, see:
-#   https://github.com/ros/gencpp/blob/e5acaf6/cmake/gencpp-extras.cmake.em#L51-L54
-list(APPEND ${PROJECT_NAME}_INCLUDE_DIRS ${VERSION_FILE_PATH})
-# Create a directory at build/moveit_core/include/moveit
-file(MAKE_DIRECTORY "${VERSION_FILE_PATH}/moveit")
-
-# Version of MoveIt!,  hardcoded for now
-# TODO: fetch this in a different manner
-set(${PROJECT_NAME}_VERSION "2.0.0")
-# Generate and install version.h
-string(REGEX REPLACE "^([0-9]+)\\..*" "\\1" MOVEIT_VERSION_MAJOR "${${PROJECT_NAME}_VERSION}")
-string(REGEX REPLACE "^[0-9]+\\.([0-9]+).*" "\\1" MOVEIT_VERSION_MINOR "${${PROJECT_NAME}_VERSION}")
-string(REGEX REPLACE "^[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1" MOVEIT_VERSION_PATCH "${${PROJECT_NAME}_VERSION}")
-set(MOVEIT_VERSION_EXTRA "Alpha")
-set(MOVEIT_VERSION "${MOVEIT_VERSION_MAJOR}.${MOVEIT_VERSION_MINOR}.${MOVEIT_VERSION_PATCH}-${MOVEIT_VERSION_EXTRA}")
-# message(ERROR_moveit_version: ${MOVEIT_VERSION_MAJOR} )
-message(STATUS " *** Building MoveIt! ${MOVEIT_VERSION} ***")
-# message(ERROR-VERSION-FILE: ${VERSION_FILE_PATH})
-# configure_file("version/version.h.in" "include/moveit/version.h")
-# install(FILES "include/moveit/version.h" DESTINATION include/${PROJECT_NAME}/moveit)
-configure_file("version/version.h.in" "${VERSION_FILE_PATH}/moveit/version.h")
-install(FILES "${VERSION_FILE_PATH}/moveit/version.h" DESTINATION include/${PROJECT_NAME})
 
 set(THIS_PACKAGE_INCLUDE_DIRS
     background_processing/include
@@ -111,7 +91,7 @@ set(THIS_PACKAGE_INCLUDE_DIRS
     utils/include
 )
 
-set(libraries
+set(THIS_PACKAGE_LIBRARIES
     moveit_exceptions
     moveit_background_processing
     moveit_kinematics_base
@@ -185,6 +165,16 @@ include_directories(${THIS_PACKAGE_INCLUDE_DIRS}
                     ${geometric_shapes_INCLUDE_DIRS}
 )
 
+# Generate and install version.h
+string(REGEX REPLACE "^([0-9]+)\\..*" "\\1" MOVEIT_VERSION_MAJOR "${${PROJECT_NAME}_VERSION}")
+string(REGEX REPLACE "^[0-9]+\\.([0-9]+).*" "\\1" MOVEIT_VERSION_MINOR "${${PROJECT_NAME}_VERSION}")
+string(REGEX REPLACE "^[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1" MOVEIT_VERSION_PATCH "${${PROJECT_NAME}_VERSION}")
+set(MOVEIT_VERSION_EXTRA "Alpha")
+set(MOVEIT_VERSION "${MOVEIT_VERSION_MAJOR}.${MOVEIT_VERSION_MINOR}.${MOVEIT_VERSION_PATCH}-${MOVEIT_VERSION_EXTRA}")
+message(STATUS " *** Building MoveIt ${MOVEIT_VERSION} ***")
+configure_file("version/version.h.in" "${VERSION_FILE_PATH}/moveit/version.h")
+install(FILES "${VERSION_FILE_PATH}/moveit/version.h" DESTINATION include/moveit)
+
 add_subdirectory(version)
 add_subdirectory(macros)
 add_subdirectory(backtrace)
@@ -213,7 +203,7 @@ add_subdirectory(kinematics_metrics)
 add_subdirectory(dynamics_solver)
 
 ament_export_include_directories(include)
-ament_export_libraries(${libraries})
+ament_export_libraries(${THIS_PACKAGE_LIBRARIES})
 ament_export_dependencies(${THIS_PACKAGE_INCLUDE_DEPENDS})
 
 ament_package()
