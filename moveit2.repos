@@ -1,8 +1,8 @@
 repositories:
   moveit2:
     type: git
-    url: https://github.com/ros-planning/moveit2
-    version: master
+    url: https://github.com/RoboticsYY/moveit2
+    version: dashing-ci-test-moveit_core
   moveit_msgs:
     type: git
     url: https://github.com/ros-planning/moveit_msgs
@@ -27,7 +27,7 @@ repositories:
     version: master
   octomap:
     type: git
-    url: https://github.com/PickNikRobotics/octomap
+    url: https://github.com/RoboticsYY/octomap
     version: ros2
   octomap_msgs:
     type: git
@@ -39,7 +39,7 @@ repositories:
     version: master
   srdfdom:
     type: git
-    url: https://github.com/PickNikRobotics/srdfdom
+    url: https://github.com/RoboticsYY/srdfdom
     version: ros2
   urdf_parser_py:
     type: git
