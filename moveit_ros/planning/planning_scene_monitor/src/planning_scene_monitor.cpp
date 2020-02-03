@@ -177,7 +177,7 @@ PlanningSceneMonitor::~PlanningSceneMonitor()
   stopWorldGeometryMonitor();
   stopSceneMonitor();
 
-  spinner_.reset();
+  // spinner_.reset();
   delete reconfigure_impl_;
   current_state_monitor_.reset();
   scene_const_.reset();
@@ -492,11 +492,20 @@ bool PlanningSceneMonitor::requestPlanningSceneState(const std::string& service_
   RCLCPP_DEBUG(LOGGER, "Waiting for service `%s` to exist.", service_name.c_str());
   client->wait_for_service(std::chrono::seconds(5));
 
-  auto result = client->async_send_request(srv);
-
-  if (rclcpp::spin_until_future_complete(node_, result) == rclcpp::executor::FutureReturnCode::SUCCESS)
+  using ServiceResponseFuture =
+  rclcpp::Client<moveit_msgs::srv::GetPlanningScene>::SharedFuture;
+  auto response_received_callback = [this](ServiceResponseFuture future)
   {
-    newPlanningSceneMessage(result.get()->scene);
+    auto result = future.get();
+    RCLCPP_INFO(LOGGER, "Get the planning scene: %s", result->scene.name);
+    rclcpp::shutdown();
+  };
+
+  auto future_result = client->async_send_request(srv, response_received_callback);
+
+  if (future_result.wait_for(1s) == std::future_status::ready)
+  {
+    newPlanningSceneMessage(future_result.get()->scene);
   }
   else
   {

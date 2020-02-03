@@ -296,9 +296,18 @@ bool SrvKinematicsPlugin::searchPositionIK(const std::vector<geometry_msgs::msg:
   }
 
   RCLCPP_DEBUG(LOGGER, "Calling service: %s", ik_service_client_->get_service_name());
-  auto result_future = ik_service_client_->async_send_request(ik_srv);
+  using ServiceResponseFuture =
+  rclcpp::Client<moveit_msgs::srv::GetPositionIK>::SharedFuture;
+  auto response_received_callback = [this](ServiceResponseFuture future)
+  {
+    auto result = future.get();
+    RCLCPP_INFO(LOGGER, "Get the position IK: %s", result->error_code);
+    rclcpp::shutdown();
+  };
+
+  auto result_future = ik_service_client_->async_send_request(ik_srv, response_received_callback);
   auto response = result_future.get();
-  if (rclcpp::spin_until_future_complete(node_, result_future) == rclcpp::executor::FutureReturnCode::SUCCESS)
+  if (result_future.wait_for(std::chrono::milliseconds(500)) == std::future_status::ready)
   {
     // Check error code
     error_code.val = response->error_code.val;
